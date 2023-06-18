@@ -6,10 +6,9 @@ from pydantic import BaseModel
 
 from ..schemas import AiChatMessage
 from ..utils import logger
-from .prompts_es import PROMPTS
+from .prompts_en import PROMPTS
 from .vecstores import Vecstores
 
-map_int_topic = {"0": "GENERAL_INFO", "1": "ADVICE", "2": "OTHER"}
 
 class Agent:
     def __init__(self):
@@ -25,16 +24,14 @@ class Agent:
         :return: Tuple of User's message, AI message and AI's message as a string.
         """
 
-        topic = self.get_topic(user_msg)
-        logger.info(f"TOPIC: {topic}")
+        user_msg = self.amplify_msg(user_msg, history)
 
-        context, metadatas = self.get_context(user_msg, topic, profile)
+        context, metadatas = self.get_context(user_msg, profile)
+
         history = self.format_history(history)
-
         prompt = PROMPTS[f"GET_INFO_{profile}"].format(
-            query=user_msg, context=context, history=history
+            user_msg=user_msg, context=context, history=history
         )
-        logger.info(prompt)
 
         ai_msg = self.chat_completion(prompt)
 
@@ -44,28 +41,22 @@ class Agent:
             ai_msg,
         )
 
-    def get_topic(self, query: str) -> str:
-        """
-        Extract topic from the user query.
+    def amplify_msg(self, user_msg: str, history: List[str]) -> str:
 
-        :param query: User's query
-        :return: Topic string
-        """
+        history = self.format_history(history, 2)
 
-        prompt = PROMPTS["GET_TOPIC"].format(query=query)
+        prompt = PROMPTS["AMPLIFY_QUERY"].format(
+            chat_history=history, user_msg=user_msg
+            )
+        
+        logger.info(prompt)
+        user_msg = self.chat_completion(prompt)
 
-        topic = self.chat_completion(prompt, max_tokens=20)
+        logger.info(f"Amplified msg: {user_msg}")
+        return user_msg
 
-        # Edge case: The model returns unnecessary text with the integer.
-        if len(topic) > 1:
-            for i in range(len(map_int_topic)):
-                if str(i) in topic:
-                    topic = i
 
-        topic = map_int_topic[topic]
-        return topic
-
-    def get_context(self, q: str, topic: str, profile: str) -> Tuple:
+    def get_context(self, q: str, profile: str) -> Tuple:
         """
         Get context for a given query and topic.
 
@@ -73,10 +64,6 @@ class Agent:
         :param topic: Topic string
         :return: Context and metadata
         """
-        logger.info(f"Context topic: {topic}")
-
-        if "OTHER" in topic:
-            return "No context provided.", []
 
         documents = self.vecstore.similarity_search(q, profile)
 
@@ -87,19 +74,18 @@ class Agent:
 
         return (context, metadatas)
 
-    def format_history(self, history: List[str]) -> str:
+    def format_history(self, history: List[str], last_k_msg: int = 0) -> str:
         """
         Format history list as a string.
 
         :param history: Chat history
+        :param k: Ge
         :return: Formatted history string
         """
-        return "\n".join([m for m in history])
-
-    def generate_message(self, query, history):
-        last_message = history[-1]
-        prompt = PROMPTS["GENERATE_MSG"].format(last_message=last_message, query=query)
-        return self.chat_completion(prompt)
+        # Get the last k messages
+        start = 0 if last_k_msg == 0 else max(len(history) - last_k_msg, 0)
+        return "\n".join([m for m in history[start: ]])
+        
 
 
     def chat_completion(self, prompt: str, max_tokens: int = None) -> str:

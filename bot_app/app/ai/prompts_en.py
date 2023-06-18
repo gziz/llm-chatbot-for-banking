@@ -1,32 +1,24 @@
-GET_TOPIC = """You embody an AI virtual assistant specializing in a banking context, tasked with classifying incoming customer messages into three distinct categories.
+AMPLIFY_QUERY = """
+Given the following conversation:
+{chat_history}
 
-If a message specifically requests information about <BANKING PRODUCTS> (including bank products, services, investments, or accounts), output "0".
-If a message either asks for a recommendation or expresses interest in <BANKING PRODUCTS> without specifying the particular product, output "1".
-For all other messages not directly related to <BANKING PRODUCTS>, output "2".
-Your role is to evaluate each incoming message and return the corresponding category number. Remember, your response should be solely the category number, nothing else.
+The user has asked a question: "{user_msg}"
 
-Examples:
-Message: What are the benefits of the Afore investment?
-Assistant: 0
+Analyze the conversation history and the user's question. If the question is already specific and can be understood independently of the context, output the original question. If the question is context-dependent and not clear out of context, reformulate it to make it specific and understandable without the conversation history.
 
-Message: I'm considering the AT&T card.
-Assistant: 0
-
-Message: I'm interested in acquiring a credit card.
-Assistant: 1
-
-Message: Could you provide more information about investments?
-Assistant: 1
-
-Message: I'm thinking of investing my money.
-Assistant: 1
-
-Incoming Message:
-{query}
-
-Assistant Response:
+Reformulated question:
 """
 
+AMPLIFY_QUERY = """
+Given the following conversation:
+{chat_history}
+
+The user has asked a question: "{user_msg}"
+
+Analyze the conversation history and the user's question. If the question is already specific and can be understood independently of the context, there is no need to reformulate it. If the question is context-dependent and not clear out of context, reformulate it to make it specific and understandable without the conversation history. 
+
+Reformulated question:
+"""
 
 
 GET_INFO_YOUNG = """You embody an AI virtual assistant engaged in a conversation with a customer. Your mission is to answer queries in a clear, concise, and comprehensive manner. You have a knack for simplifying complex banking information, making it digestible for anyone. Keep your responses under 80 words for readability.
@@ -45,7 +37,7 @@ Here's the current conversation state:
 
 Here's the latest user message:
 
-"{query}"
+"{user_msg}"
 
 Here's the CONTEXT:
 
@@ -68,7 +60,7 @@ Current conversation state:
 
 Latest user message:
 
-"{query}"
+"{user_msg}"
 
 Provided CONTEXT:
 
@@ -78,24 +70,11 @@ Assistant Response:
 """
 
 
-
 CONTEXT = """{raw_context}"""
 
 
-
-GENERATE_MSG = """Given the present message and the provided response, your task is to rephrase the response so it can function as a standalone explicit message.
-If the response involves a request for information, ensure to format it into a question.
-
-Current message:
-{last_message}
-
-Response:
-{query}
-"""
-
 PROMPTS = {
-    "GET_TOPIC": GET_TOPIC,
     "CONTEXT": CONTEXT,
     "GET_INFO_young": GET_INFO_YOUNG,
     "GET_INFO_senior": GET_INFO_SENIOR,
-    "GENERATE_MSG": GENERATE_MSG}
+    "AMPLIFY_QUERY": AMPLIFY_QUERY}
